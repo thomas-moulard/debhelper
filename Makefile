@@ -74,4 +74,5 @@ install:
 
 test: version
 	./run perl -MTest::Harness -e 'runtests grep { ! /CVS/ && ! /\.svn/ } @ARGV' t/*
+# clean up log etc
 	./run dh_clean
