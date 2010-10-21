@@ -20,10 +20,13 @@ MAKEMANLIST=perl -e ' \
 			}; \
 		}'
 
+PREFIX=/usr/local
+
 # Figure out the `current debhelper version.
 VERSION=$(shell expr "`dpkg-parsechangelog |grep Version:`" : '.*Version: \(.*\)')
 
-PERLLIBDIR=$(shell perl -MConfig -e 'print $$Config{vendorlib}')/Debian/Debhelper
+PERLLIBDIR=$(shell echo $(shell perl -MConfig -e 'print $$Config{vendorlib}')/Debian/Debhelper \
+ | sed 's|/usr|$(PREFIX)|g')
 
 POD2MAN=pod2man -c Debhelper -r "$(VERSION)"
 
@@ -36,7 +39,7 @@ build: version
 	cat debhelper.pod | \
 		$(MAKEMANLIST) `find . -maxdepth 1 -type f -perm +100 -name "dh_*" | sort` | \
 		$(POD2MAN) --name="debhelper" --section=7  > debhelper.7
-	po4a man/po4a/po4a.cfg 
+	po4a man/po4a/po4a.cfg
 	set -e; \
 	for lang in $(LANGS); do \
 		dir=man/$$lang; \
@@ -61,15 +64,14 @@ clean:
 	done;
 
 install:
-	install -d $(DESTDIR)/usr/bin \
-		$(DESTDIR)/usr/share/debhelper/autoscripts \
+	install -d $(DESTDIR)$(PREFIX)/bin \
+		$(DESTDIR)$(PREFIX)/share/debhelper/autoscripts \
 		$(DESTDIR)$(PERLLIBDIR)/Sequence
-	install $(shell find -maxdepth 1 -mindepth 1 -name dh\* |grep -v \.1\$$) $(DESTDIR)/usr/bin
-	install -m 0644 autoscripts/* $(DESTDIR)/usr/share/debhelper/autoscripts
+	install $(shell find -maxdepth 1 -mindepth 1 -name dh\* |grep -v \.1\$$) $(DESTDIR)$(PREFIX)/bin
+	install -m 0644 autoscripts/* $(DESTDIR)$(PREFIX)/share/debhelper/autoscripts
 	install -m 0644 Debian/Debhelper/*.pm $(DESTDIR)$(PERLLIBDIR)
 	install -m 0644 Debian/Debhelper/Sequence/*.pm $(DESTDIR)$(PERLLIBDIR)/Sequence
 
 test: version
 	./run perl -MTest::Harness -e 'runtests grep { ! /CVS/ && ! /\.svn/ } @ARGV' t/*
-	# clean up log etc
 	./run dh_clean
